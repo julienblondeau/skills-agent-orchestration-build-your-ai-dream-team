@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Pulse</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="dashboard-header">
+    <h1>Project Pulse</h1>
+    <p class="dashboard-subtitle">Status, owners and recent activity across Mona's team projects.</p>
+    <ul class="status-summary" aria-label="Projects by status"></ul>
+  </header>
+  <main class="dashboard">
+    <p class="dashboard-message" role="status" aria-live="polite">Loading projects…</p>
+    <section class="project-grid" aria-label="Projects"></section>
+  </main>
+
+  <script>
+    const DATA_URL = 'project-data.json';
+    const MISSING_VALUE = '—';
+
+    const STATUS_DISPLAY = {
+      'on-track': { className: 'status-on-track', label: 'On track' },
+      'at-risk': { className: 'status-at-risk', label: 'At risk' },
+      'blocked': { className: 'status-blocked', label: 'Blocked' },
+      'done': { className: 'status-done', label: 'Done' }
+    };
+    const UNKNOWN_STATUS = { className: 'status-unknown', label: 'Unknown' };
+
+    const PRIORITY_DISPLAY = {
+      'high': { className: 'priority-high', label: 'High priority' },
+      'medium': { className: 'priority-medium', label: 'Medium priority' },
+      'low': { className: 'priority-low', label: 'Low priority' }
+    };
+    const UNKNOWN_PRIORITY = { className: 'priority-unknown', label: 'Priority unknown' };
+
+    const messageElement = document.querySelector('.dashboard-message');
+    const gridElement = document.querySelector('.project-grid');
+    const summaryElement = document.querySelector('.status-summary');
+
+    function textOrPlaceholder(value) {
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value;
+      }
+      return MISSING_VALUE;
+    }
+
+    function getStatusDisplay(status) {
+      return Object.prototype.hasOwnProperty.call(STATUS_DISPLAY, status) ? STATUS_DISPLAY[status] : UNKNOWN_STATUS;
+    }
+
+    function getPriorityDisplay(priority) {
+      return Object.prototype.hasOwnProperty.call(PRIORITY_DISPLAY, priority) ? PRIORITY_DISPLAY[priority] : UNKNOWN_PRIORITY;
+    }
+
+    function createElement(tagName, className, text) {
+      const element = document.createElement(tagName);
+      if (className) {
+        element.className = className;
+      }
+      if (text !== undefined) {
+        element.textContent = text;
+      }
+      return element;
+    }
+
+    function createLabelledField(className, labelText, value) {
+      const field = createElement('p', className);
+      field.appendChild(createElement('span', 'field-label', labelText));
+      field.appendChild(document.createTextNode(textOrPlaceholder(value)));
+      return field;
+    }
+
+    function showMessage(text, isError) {
+      messageElement.textContent = text;
+      messageElement.setAttribute('role', isError ? 'alert' : 'status');
+      messageElement.hidden = false;
+    }
+
+    function renderProjectCard(project) {
+      const statusDisplay = getStatusDisplay(project.status);
+      const priorityDisplay = getPriorityDisplay(project.priority);
+
+      const card = createElement('article', 'project-card');
+
+      const cardHeader = createElement('div', 'card-header');
+      cardHeader.appendChild(createElement('h2', 'project-name', textOrPlaceholder(project.name)));
+      cardHeader.appendChild(createElement('span', 'status-badge ' + statusDisplay.className, statusDisplay.label));
+      card.appendChild(cardHeader);
+
+      const cardMeta = createElement('div', 'card-meta');
+      cardMeta.appendChild(createLabelledField('project-owner', 'Owner', project.owner));
+      cardMeta.appendChild(createElement('span', 'priority-badge ' + priorityDisplay.className, priorityDisplay.label));
+      card.appendChild(cardMeta);
+
+      card.appendChild(createLabelledField('project-activity', 'Recent activity', project.recentActivity));
+
+      if (typeof project.summary === 'string' && project.summary.trim() !== '') {
+        card.appendChild(createElement('p', 'project-summary', project.summary));
+      }
+
+      return card;
+    }
+
+    function renderStatusSummary(projects) {
+      const statusCounts = new Map();
+      for (const project of projects) {
+        const label = getStatusDisplay(project.status).label;
+        statusCounts.set(label, (statusCounts.get(label) || 0) + 1);
+      }
+
+      const orderedLabels = Object.values(STATUS_DISPLAY).map(display => display.label).concat(UNKNOWN_STATUS.label);
+      summaryElement.replaceChildren();
+      for (const label of orderedLabels) {
+        const count = statusCounts.get(label);
+        if (!count) {
+          continue;
+        }
+        const chip = createElement('li', 'summary-chip');
+        chip.appendChild(createElement('strong', null, String(count)));
+        chip.appendChild(document.createTextNode(' ' + label));
+        summaryElement.appendChild(chip);
+      }
+    }
+
+    function renderProjects(projects) {
+      renderStatusSummary(projects);
+
+      if (projects.length === 0) {
+        showMessage('No projects yet', false);
+        return;
+      }
+
+      const validProjects = projects.filter(project => project !== null && typeof project === 'object');
+      gridElement.replaceChildren(...validProjects.map(renderProjectCard));
+      messageElement.hidden = true;
+    }
+
+    async function loadDashboard() {
+      let response;
+      try {
+        response = await fetch(DATA_URL);
+      } catch (networkError) {
+        showMessage(
+          'Could not load project data. Open this page through the "Run Project Pulse Dashboard" launch configuration (a local web server), not as a file:// URL.',
+          true
+        );
+        console.error('Fetch failed for ' + DATA_URL, networkError);
+        return;
+      }
+
+      if (!response.ok) {
+        showMessage(
+          'Could not load project data (HTTP ' + response.status + '). Make sure project-data.json exists and the page is served via the "Run Project Pulse Dashboard" launch configuration.',
+          true
+        );
+        return;
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        showMessage('Project data could not be read: project-data.json is not valid JSON.', true);
+        console.error('JSON parse failed for ' + DATA_URL, parseError);
+        return;
+      }
+
+      if (!data || !Array.isArray(data.projects)) {
+        showMessage('Project data is missing a "projects" list. Check project-data.json.', true);
+        return;
+      }
+
+      renderProjects(data.projects);
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

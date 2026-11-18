@@ -1,0 +1,52 @@
+{
+  "projects": [
+    {
+      "name": "Contributor Onboarding Guide",
+      "owner": "Mona Lisa",
+      "status": "on-track",
+      "recentActivity": "Merged the new first-issue walkthrough on Nov 17, 2026.",
+      "priority": "high",
+      "summary": "A step-by-step guide that helps new contributors set up their environment and open their first pull request."
+    },
+    {
+      "name": "CI Pipeline Speedup",
+      "owner": "Hubot",
+      "status": "at-risk",
+      "recentActivity": "Test caching experiment cut build time by 20%, but flaky tests remain.",
+      "priority": "high",
+      "summary": "Reduce pull request feedback time by caching dependencies and splitting slow test suites."
+    },
+    {
+      "name": "Accessibility Audit",
+      "owner": "Octocat",
+      "status": "blocked",
+      "recentActivity": "Waiting on design review of color tokens since Nov 12, 2026.",
+      "priority": "medium",
+      "summary": "Review every page for contrast, keyboard navigation, and screen reader support."
+    },
+    {
+      "name": "Docs Site Search",
+      "owner": "Copilot Crew",
+      "status": "on-track",
+      "recentActivity": "Search index prototype deployed to the staging site on Nov 15, 2026.",
+      "priority": "medium",
+      "summary": "Add fast full-text search so contributors can find answers without leaving the docs."
+    },
+    {
+      "name": "Release Notes Automation",
+      "owner": "Dependabot",
+      "status": "done",
+      "recentActivity": "Shipped automatic changelog generation with the v2.4 release on Nov 10, 2026.",
+      "priority": "low",
+      "summary": "Generate release notes from merged pull request labels so maintainers save time every release."
+    },
+    {
+      "name": "Community Showcase Page",
+      "owner": "Mona Lisa",
+      "status": "at-risk",
+      "recentActivity": "Only 3 of 8 featured project write-ups submitted so far.",
+      "priority": "low",
+      "summary": "A page that highlights cool projects built by the community, refreshed every month."
+    }
+  ]
+}
